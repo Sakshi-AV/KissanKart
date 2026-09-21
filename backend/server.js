@@ -73,13 +73,34 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+let dbInitialized = false;
+const initDbAndSeed = async () => {
+  if (!dbInitialized) {
+    await connectDB();
+    await seedData();
+    dbInitialized = true;
+  }
+};
+
+// Middleware to ensure DB connection on serverless requests
+app.use(async (req, res, next) => {
+  if (!dbInitialized) {
+    await initDbAndSeed();
+  }
+  next();
+});
+
 const startServer = async () => {
-  await connectDB();
-  await seedData();
+  await initDbAndSeed();
 
   app.listen(PORT, () => {
     console.log(`🚀 Kissan Kart Server running on http://localhost:${PORT}`);
   });
 };
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+module.exports = app;
+
